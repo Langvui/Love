@@ -1,0 +1,1850 @@
+<div id="uploadMusicPanel" style="display: none;">
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('audioFile').click()">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">
+            <strong>Click để chọn file nhạc</strong><br>
+            <small>Hoặc kéo thả file vào đây</small>
+        </div>
+        <div class="upload-info">
+            Hỗ trợ: MP3, WAV, M4A, OGG<br> Kích thước tối đa: 50MB
+        </div>
+    </div>
+    <input type="file" id="audioFile" accept="audio/*" style="display: none;" onchange="handleFileUpload(this)">
+    <div id="uploadedFileName" style="display: none; margin-top: 10px; padding: 10px; background: rgba(40, 167, 69, 0.1); border: 2px solid #28a745; border-radius: 8px; color: #28a745;">
+        <div style="font-weight: bold;">✅ Đã tải lên:</div>
+        <div id="fileName"></div>
+        <button onclick="removeUploadedFile()" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; margin-top: 5px; cursor: pointer;">Xóa file</button>
+    </div>
+    <div class="music-info">
+        💡 <strong>Upload nhạc từ máy tính</strong><br> Chọn file MP3/WAV yêu thích từ máy của bạn!
+    </div>
+</div>
+<div id="customMusicPanel" style="display: none;">
+    <input type="text" class="music-input" id="musicUrl" placeholder="Nhập link YouTube hoặc MP3...">
+    <button class="apply-btn" onclick="loadCustomMusic()">Áp dụng nhạc</button>
+    <div class="music-info">
+        💡 <strong>Hướng dẫn:</strong><br> • Link YouTube: https://youtu.be/abc123<br> • Link MP3: https://example.com/song.mp3<br> • Nhạc sẽ phát tự động sau khi load
+    </div>
+</div>
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thư Tỏ Tình Dành Cho Em</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Crimson Text', serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+        
+        .floating-hearts {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .heart {
+            position: absolute;
+            color: rgba(255, 182, 193, 0.6);
+            font-size: 20px;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        /* ENVELOPE STYLES */
+        
+        .envelope-container {
+            position: relative;
+            width: 400px;
+            height: 300px;
+            perspective: 1000px;
+            z-index: 10;
+        }
+        
+        .envelope {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .envelope.opened {
+            transform: rotateY(180deg);
+        }
+        
+        .envelope-front,
+        .envelope-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .envelope-front {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border: 3px solid #d63384;
+        }
+        
+        .envelope-back {
+            transform: rotateY(180deg);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        
+        .envelope-flap {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 150px solid transparent;
+            border-right: 150px solid transparent;
+            border-bottom: 100px solid #d63384;
+            transition: all 0.8s ease;
+            transform-origin: bottom center;
+        }
+        
+        .envelope.opened .envelope-flap {
+            transform: translateX(-50%) rotateX(-180deg);
+        }
+        
+        .envelope-seal {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            background: #dc3545;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            color: white;
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.5);
+        }
+        
+        .envelope-text {
+            text-align: center;
+            color: #d63384;
+            margin-top: 40px;
+        }
+        
+        .envelope-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .envelope-subtitle {
+            font-size: 1.2em;
+            opacity: 0.8;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 0.8;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+        /* LETTER STYLES */
+        
+        .letter-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            margin: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            opacity: 0;
+            transform: scale(0.8) translateY(50px);
+            transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .letter-container.show {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+        
+        .letter-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .letter-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 3.5em;
+            color: #d63384;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            to {
+                text-shadow: 2px 2px 20px rgba(214, 51, 132, 0.5);
+            }
+        }
+        
+        .letter-date {
+            font-style: italic;
+            color: #6c757d;
+            margin-top: 10px;
+            font-size: 1.1em;
+        }
+        
+        .letter-content {
+            line-height: 1.8;
+            font-size: 1.2em;
+            color: #333;
+            text-align: justify;
+        }
+        
+        .letter-content p {
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 1s ease-out forwards;
+        }
+        
+        .letter-content p:nth-child(1) {
+            animation-delay: 2.5s;
+        }
+        
+        .letter-content p:nth-child(2) {
+            animation-delay: 3s;
+        }
+        
+        .letter-content p:nth-child(3) {
+            animation-delay: 3.5s;
+        }
+        
+        .letter-content p:nth-child(4) {
+            animation-delay: 4s;
+        }
+        
+        .letter-content p:nth-child(5) {
+            animation-delay: 4.5s;
+        }
+        
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .letter-signature {
+            text-align: right;
+            margin-top: 40px;
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.8em;
+            color: #d63384;
+            font-weight: 600;
+            opacity: 0;
+            animation: slideIn 1s ease-out forwards;
+            animation-delay: 5s;
+        }
+        
+        .decorative-border {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            border: 2px solid #d63384;
+            border-radius: 15px;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        
+        .decorative-corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #d63384;
+        }
+        
+        .decorative-corner.top-left {
+            top: 10px;
+            left: 10px;
+            border-right: none;
+            border-bottom: none;
+            border-radius: 15px 0 0 0;
+        }
+        
+        .decorative-corner.top-right {
+            top: 10px;
+            right: 10px;
+            border-left: none;
+            border-bottom: none;
+            border-radius: 0 15px 0 0;
+        }
+        
+        .decorative-corner.bottom-left {
+            bottom: 10px;
+            left: 10px;
+            border-right: none;
+            border-top: none;
+            border-radius: 0 0 0 15px;
+        }
+        
+        .decorative-corner.bottom-right {
+            bottom: 10px;
+            right: 10px;
+            border-left: none;
+            border-top: none;
+            border-radius: 0 0 15px 0;
+        }
+        
+        .music-controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 1s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        .music-controls.show {
+            opacity: 1;
+        }
+        
+        .play-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .play-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+        
+        .music-settings {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            transform: translateX(300px);
+            transition: all 0.3s ease;
+            max-width: 280px;
+            border: 2px solid #d63384;
+        }
+        
+        .music-settings.show {
+            transform: translateX(0);
+        }
+        
+        .settings-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #d63384;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: #d63384;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .settings-btn:hover {
+            background: #d63384;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .music-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #d63384;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-family: 'Crimson Text', serif;
+        }
+        
+        .music-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(214, 51, 132, 0.3);
+        }
+        
+        .apply-btn {
+            background: linear-gradient(135deg, #d63384 0%, #c82333 100%);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Dancing Script', cursive;
+            font-size: 16px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .apply-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(214, 51, 132, 0.4);
+        }
+        
+        .music-mode {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #d63384;
+            background: rgba(214, 51, 132, 0.1);
+            color: #d63384;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-btn.active {
+            background: #d63384;
+            color: white;
+        }
+        
+        .upload-area {
+            border: 3px dashed #d63384;
+            border-radius: 15px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(214, 51, 132, 0.05);
+            margin-bottom: 15px;
+        }
+        
+        .upload-area:hover {
+            background: rgba(214, 51, 132, 0.1);
+            border-color: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .upload-area.dragover {
+            background: rgba(214, 51, 132, 0.15);
+            border-color: #c82333;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            color: #d63384;
+            font-family: 'Crimson Text', serif;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .upload-text small {
+            font-size: 14px;
+            opacity: 0.8;
+            font-weight: normal;
+        }
+        
+        .upload-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+        
+        .back-button {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #d63384;
+            border-radius: 50px;
+            padding: 10px 20px;
+            color: #d63384;
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            z-index: 100;
+        }
+        
+        .back-button.show {
+            opacity: 1;
+        }
+        
+        .back-button:hover {
+            background: #d63384;
+            color: white;
+            transform: scale(1.05);
+        }
+        /* Particles effect */
+        
+        .envelope-particles {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1px;
+            height: 1px;
+            pointer-events: none;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #d63384;
+            border-radius: 50%;
+            opacity: 0;
+        }
+        
+        @keyframes explode {
+            0% {
+                opacity: 1;
+                transform: scale(0);
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .envelope-container {
+                width: 300px;
+                height: 220px;
+            }
+            .letter-container {
+                padding: 25px 20px;
+                margin: 10px;
+                max-width: 90vw;
+            }
+            .letter-title {
+                font-size: 2.5em;
+            }
+            .letter-content {
+                font-size: 1.1em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="floating-hearts" id="hearts-container"></div>
+
+    <!-- Envelope -->
+    <div class="envelope-container" id="envelopeContainer">
+        <div class="envelope" id="envelope">
+            <div class="envelope-flap"></div>
+            <div class="envelope-front" onclick="openEnvelope()">
+                <div class="envelope-seal">💕</div>
+                <div class="envelope-text">
+                    <div class="envelope-title">Thư Tình</div>
+                    <div class="envelope-subtitle">Click để mở 💌</div>
+                </div>
+            </div>
+            <div class="envelope-back"></div>
+        </div>
+        <div class="envelope-particles" id="particles"></div>
+    </div>
+
+    <!-- Letter -->
+    <div class="letter-container" id="letterContainer">
+        <div class="decorative-border"></div>
+        <div class="decorative-corner top-left"></div>
+        <div class="decorative-corner top-right"></div>
+        <div class="decorative-corner bottom-left"></div>
+        <div class="decorative-corner bottom-right"></div>
+
+        <div class="letter-header">
+            <h1 class="letter-title">Thư Gửi Em Yêu</h1>
+            <div class="letter-date">Viết trong một ngày đầy nắng ấm</div>
+        </div>
+
+        <div class="letter-content">
+            <p>Em yêu của anh,</p>
+
+            <p>Có những điều anh muốn nói với em từ lâu rồi, nhưng mỗi lần gặp em, anh lại không biết phải bắt đầu từ đâu. Hôm nay, anh quyết định viết những dòng này, để em hiểu rằng em quan trọng với anh đến mức nào.</p>
+
+            <p>Từ ngày đầu tiên gặp em, trái tim anh đã không còn thuộc về anh nữa. Nụ cười của em như ánh nắng mai, xua tan đi mọi buồn phiền trong lòng anh. Đôi mắt em sáng như những vì sao, dẫn lối cho anh trong những đêm tối nhất.</p>
+
+            <p>Anh biết rằng tình yêu không chỉ là những lời ngọt ngào, mà là sự chăm sóc, thấu hiểu và đồng hành. Anh hứa sẽ là người bạn đồng hành đáng tin cậy nhất của em, là vai để em tựa khi mệt mỏi, là bàn tay để em nắm khi cần sự ủng hộ.</p>
+
+            <p>Em có muốn cùng anh viết nên một câu chuyện tình yêu đẹp như những gì anh đã mơ ước không? Anh sẽ chờ đợi câu trả lời của em, dù kết quả như thế nào, anh cũng sẽ tôn trọng và trân trọng tình cảm này mãi mãi.</p>
+        </div>
+
+        <div class="letter-signature">
+            Người yêu em từ đáy lòng,<br> 💝 [Tên của bạn]
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <button class="back-button" id="backButton" onclick="closeEnvelope()">
+← Đóng thư
+</button>
+
+    <div class="music-controls" id="musicControls">
+        <div class="music-settings" id="musicSettings">
+            <div class="music-mode">
+                <button class="mode-btn active" onclick="setMusicMode('background')" id="backgroundBtn">Nhạc nền</button>
+                <button class="mode-btn" onclick="setMusicMode('builtin')" id="builtinBtn">Nhạc có sẵn</button>
+                <button class="mode-btn" onclick="setMusicMode('upload')" id="uploadBtn">Từ máy tính</button>
+                <button class="mode-btn" onclick="setMusicMode('custom')" id="customBtn">Link online</button>
+            </div>
+
+            <div id="backgroundMusicPanel">
+                <div class="music-info" style="background: rgba(40, 167, 69, 0.1); border: 2px solid #28a745; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <div style="font-weight: bold; color: #28a745; margin-bottom: 10px;">🎵 Nhạc nền tự động (Âm lượng: 70%)</div>
+                    <div style="font-size: 14px; color: #333;">
+                        • Nhạc sẽ tự động phát khi mở thư<br> • Để thêm nhạc riêng, đặt file MP3 vào cùng thư mục<br> • Sửa code HTML để link tới file nhạc của bạn
+                    </div>
+                </div>
+
+                <div class="volume-control" style="margin: 15px 0; text-align: center;">
+                    <label style="font-weight: bold; color: #d63384;">🔊 Âm lượng nhạc nền:</label><br>
+                    <input type="range" id="backgroundVolumeSlider" min="0" max="100" value="70" onchange="adjustBackgroundVolume(this.value)" style="width: 200px; margin: 10px;">
+                    <span id="backgroundVolumeText">70%</span>
+                </div>
+
+                <div class="music-file-info">
+                    <strong>📁 Hướng dẫn thêm nhạc:</strong><br><br>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 13px; margin: 10px 0;">
+                        1. Đặt file nhạc (ví dụ: love-song.mp3) vào cùng thư mục với file HTML<br> 2. Mở file HTML bằng text editor<br> 3. Tìm dòng: &lt;!-- &lt;source src="..." --&gt;<br> 4. Thay thành: &lt;source src="love-song.mp3" type="audio/mpeg"&gt;
+                    </div>
+
+                    <div style="color: #666; font-size: 12px;">
+                        Sau khi sửa, nhạc sẽ tự động phát khi mở thư!
+                    </div>
+                </div>
+            </div>
+
+            <div id="builtinMusicPanel">
+                <div class="music-selector">
+                    <label style="font-weight: bold; color: #d63384; margin-bottom: 10px; display: block;">🎵 Chọn giai điệu:</label>
+                    <select class="music-input" id="builtinMusicSelect" onchange="changeBuiltinMusic()">
+            <option value="romantic">💕 Giai điệu lãng mạn</option>
+            <option value="canon">🎼 Canon in D (Pachelbel)</option>
+            <option value="moonlight">🌙 Ánh trăng (Clair de Lune)</option>
+            <option value="happy">😊 Happy Birthday</option>
+            <option value="wedding">💒 Lễ cưới (Wedding March)</option>
+            <option value="twinkle">⭐ Twinkle Little Star</option>
+            <option value="jingle">🎄 Jingle Bells</option>
+            <option value="fur_elise">🎹 Für Elise (Beethoven)</option>
+        </select>
+                </div>
+                <div class="music-info">
+                    💡 <strong>8 giai điệu có sẵn</strong><br> Từ lãng mạn đến cổ điển, chọn theo tâm trạng!
+                </div>
+            </div>
+            <input type="text" class="music-input" id="musicUrl" placeholder="Nhập link YouTube hoặc MP3...">
+            <button class="apply-btn" onclick="loadCustomMusic()">Áp dụng nhạc</button>
+            <div class="music-info">
+                💡 <strong>Hướng dẫn:</strong><br> • Link YouTube: https://youtu.be/abc123<br> • Link MP3: https://example.com/song.mp3<br> • Nhạc sẽ phát tự động sau khi load
+            </div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <button class="settings-btn" onclick="toggleSettings()" id="settingsBtn">
+    ⚙️
+</button>
+        <button class="play-btn" onclick="toggleMusic()" id="musicBtn">
+    ▶️
+</button>
+    </div>
+    </div>
+
+    <!-- Hidden audio element for background music -->
+    <audio id="backgroundMusic" loop preload="auto" style="display: none;">
+<!-- Bạn có thể thêm file nhạc vào đây -->
+<source src="Westlife -  Beautiful in white (Lyrics).mp3" type="audio/mpeg">
+<!-- <source src="path/to/your/music.ogg" type="audio/ogg"> -->
+</audio>
+
+    <!-- Custom audio for URL music -->
+    <audio id="customAudio" loop style="display: none;"></audio>
+
+    <script>
+        let isEnvelopeOpen = false;
+        let currentMusicMode = 'background'; // 'background', 'builtin', 'upload', or 'custom'
+        let customAudio = null;
+        let uploadedAudio = null;
+        let backgroundAudio = null;
+        let currentBuiltinMusic = 'romantic';
+
+        // Initialize background music
+        function initializeBackgroundMusic() {
+            backgroundAudio = document.getElementById('backgroundMusic');
+            backgroundAudio.volume = 0.7; // Tăng từ 0.3 lên 0.7
+
+            // Check if background music file exists
+            if (backgroundAudio.children.length > 0) {
+                backgroundAudio.onloadeddata = () => {
+                    // Music file found and loaded
+                    console.log('Background music loaded successfully');
+                };
+
+                backgroundAudio.onerror = () => {
+                    console.log('Background music file not found');
+                };
+            }
+        }
+
+        // Handle file upload
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Check file size (50MB limit)
+            if (file.size > 50 * 1024 * 1024) {
+                showNotification('❌ File quá lớn! Tối đa 50MB', 'error');
+                return;
+            }
+
+            // Check file type
+            if (!file.type.startsWith('audio/')) {
+                showNotification('❌ Chỉ chấp nhận file âm thanh!', 'error');
+                return;
+            }
+
+            // Stop current music if playing
+            if (isPlaying) {
+                toggleMusic();
+            }
+
+            // Create audio from file
+            const fileURL = URL.createObjectURL(file);
+            uploadedAudio = new Audio(fileURL);
+            uploadedAudio.loop = true;
+            uploadedAudio.volume = 0.7; // Tăng từ 0.5 lên 0.7
+
+            // Show success message
+            document.getElementById('uploadedFileName').style.display = 'block';
+            document.getElementById('fileName').textContent = file.name;
+
+            uploadedAudio.onloadeddata = () => {
+                showNotification(`✅ Đã tải nhạc: ${file.name}`, 'success');
+
+                // Auto play the uploaded music
+                setTimeout(() => {
+                    if (!isPlaying) {
+                        toggleMusic();
+                    }
+                }, 500);
+            };
+
+            uploadedAudio.onerror = () => {
+                showNotification('❌ Không thể phát file này!', 'error');
+                removeUploadedFile();
+            };
+        }
+
+        // Remove uploaded file
+        function removeUploadedFile() {
+            if (uploadedAudio) {
+                if (isPlaying && currentMusicMode === 'upload') {
+                    toggleMusic();
+                }
+                uploadedAudio.pause();
+                uploadedAudio = null;
+            }
+
+            document.getElementById('uploadedFileName').style.display = 'none';
+            document.getElementById('audioFile').value = '';
+            showNotification('🗑️ Đã xóa file nhạc', 'info', 2000);
+        }
+
+        // Drag and drop functionality
+        function initializeDragDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const audioFile = document.getElementById('audioFile');
+                    audioFile.files = files;
+                    handleFileUpload(audioFile);
+                }
+            });
+        }
+
+        // Built-in melodies library
+        const melodies = {
+            romantic: {
+                name: "💕 Giai điệu lãng mạn",
+                notes: [{
+                        freq: 523.25,
+                        duration: 400
+                    }, // C5
+                    {
+                        freq: 523.25,
+                        duration: 200
+                    }, // C5
+                    {
+                        freq: 587.33,
+                        duration: 600
+                    }, // D5
+                    {
+                        freq: 523.25,
+                        duration: 600
+                    }, // C5
+                    {
+                        freq: 698.46,
+                        duration: 600
+                    }, // F5
+                    {
+                        freq: 659.25,
+                        duration: 1000
+                    }, // E5
+                    {
+                        freq: 523.25,
+                        duration: 400
+                    }, // C5
+                    {
+                        freq: 523.25,
+                        duration: 200
+                    }, // C5
+                    {
+                        freq: 587.33,
+                        duration: 600
+                    }, // D5
+                    {
+                        freq: 523.25,
+                        duration: 600
+                    }, // C5
+                    {
+                        freq: 783.99,
+                        duration: 600
+                    }, // G5
+                    {
+                        freq: 698.46,
+                        duration: 1000
+                    }, // F5
+                ]
+            },
+            canon: {
+                name: "🎼 Canon in D",
+                notes: [{
+                        freq: 587.33,
+                        duration: 1000
+                    }, // D5
+                    {
+                        freq: 523.25,
+                        duration: 500
+                    }, // C5
+                    {
+                        freq: 466.16,
+                        duration: 500
+                    }, // Bb4
+                    {
+                        freq: 523.25,
+                        duration: 1000
+                    }, // C5
+                    {
+                        freq: 587.33,
+                        duration: 500
+                    }, // D5
+                    {
+                        freq: 698.46,
+                        duration: 500
+                    }, // F5
+                    {
+                        freq: 659.25,
+                        duration: 1000
+                    }, // E5
+                    {
+                        freq: 587.33,
+                        duration: 1000
+                    }, // D5
+                    {
+                        freq: 523.25,
+                        duration: 500
+                    }, // C5
+                    {
+                        freq: 587.33,
+                        duration: 500
+                    }, // D5
+                    {
+                        freq: 659.25,
+                        duration: 1000
+                    }, // E5
+                ]
+            },
+            moonlight: {
+                name: "🌙 Clair de Lune",
+                notes: [{
+                        freq: 523.25,
+                        duration: 800
+                    }, // C5
+                    {
+                        freq: 587.33,
+                        duration: 400
+                    }, // D5
+                    {
+                        freq: 659.25,
+                        duration: 600
+                    }, // E5
+                    {
+                        freq: 698.46,
+                        duration: 400
+                    }, // F5
+                    {
+                        freq: 659.25,
+                        duration: 800
+                    }, // E5
+                    {
+                        freq: 587.33,
+                        duration: 400
+                    }, // D5
+                    {
+                        freq: 523.25,
+                        duration: 1200
+                    }, // C5
+                    {
+                        freq: 466.16,
+                        duration: 800
+                    }, // Bb4
+                    {
+                        freq: 523.25,
+                        duration: 400
+                    }, // C5
+                    {
+                        freq: 587.33,
+                        duration: 1200
+                    }, // D5
+                ]
+            },
+            happy: {
+                name: "😊 Happy Birthday",
+                notes: [{
+                        freq: 523.25,
+                        duration: 400
+                    }, // C5
+                    {
+                        freq: 523.25,
+                        duration: 200
+                    }, // C5
+                    {
+                        freq: 587.33,
+                        duration: 600
+                    }, // D5
+                    {
+                        freq: 523.25,
+                        duration: 600
+                    }, // C5
+                    {
+                        freq: 698.46,
+                        duration: 600
+                    }, // F5
+                    {
+                        freq: 659.25,
+                        duration: 1200
+                    }, // E5
+                    {
+                        freq: 523.25,
+                        duration: 400
+                    }, // C5
+                    {
+                        freq: 523.25,
+                        duration: 200
+                    }, // C5
+                    {
+                        freq: 587.33,
+                        duration: 600
+                    }, // D5
+                    {
+                        freq: 523.25,
+                        duration: 600
+                    }, // C5
+                    {
+                        freq: 783.99,
+                        duration: 600
+                    }, // G5
+                    {
+                        freq: 698.46,
+                        duration: 1200
+                    }, // F5
+                ]
+            },
+            wedding: {
+                name: "💒 Wedding March",
+                notes: [{
+                        freq: 523.25,
+                        duration: 800
+                    }, // C5
+                    {
+                        freq: 698.46,
+                        duration: 800
+                    }, // F5
+                    {
+                        freq: 698.46,
+                        duration: 400
+                    }, // F5
+                    {
+                        freq: 698.46,
+                        duration: 1200
+                    }, // F5
+                    {
+                        freq: 880.00,
+                        duration: 800
+                    }, // A5
+                    {
+                        freq: 698.46,
+                        duration: 800
+                    }, // F5
+                    {
+                        freq: 659.25,
+                        duration: 400
+                    }, // E5
+                    {
+                        freq: 698.46,
+                        duration: 1200
+                    }, // F5
+                    {
+                        freq: 523.25,
+                        duration: 800
+                    }, // C5
+                    {
+                        freq: 698.46,
+                        duration: 1200
+                    }, // F5
+                ]
+            },
+            twinkle: {
+                name: "⭐ Twinkle Little Star",
+                notes: [{
+                        freq: 523.25,
+                        duration: 600
+                    }, // C5
+                    {
+                        freq: 523.25,
+                        duration: 600
+                    }, // C5
+                    {
+                        freq: 783.99,
+                        duration: 600
+                    }, // G5
+                    {
+                        freq: 783.99,
+                        duration: 600
+                    }, // G5
+                    {
+                        freq: 880.00,
+                        duration: 600
+                    }, // A5
+                    {
+                        freq: 880.00,
+                        duration: 600
+                    }, // A5
+                    {
+                        freq: 783.99,
+                        duration: 1200
+                    }, // G5
+                    {
+                        freq: 698.46,
+                        duration: 600
+                    }, // F5
+                    {
+                        freq: 698.46,
+                        duration: 600
+                    }, // F5
+                    {
+                        freq: 659.25,
+                        duration: 600
+                    }, // E5
+                    {
+                        freq: 659.25,
+                        duration: 600
+                    }, // E5
+                    {
+                        freq: 587.33,
+                        duration: 600
+                    }, // D5
+                    {
+                        freq: 587.33,
+                        duration: 600
+                    }, // D5
+                    {
+                        freq: 523.25,
+                        duration: 1200
+                    }, // C5
+                ]
+            },
+            jingle: {
+                name: "🎄 Jingle Bells",
+                notes: [{
+                        freq: 659.25,
+                        duration: 400
+                    }, // E5
+                    {
+                        freq: 659.25,
+                        duration: 400
+                    }, // E5
+                    {
+                        freq: 659.25,
+                        duration: 800
+                    }, // E5
+                    {
+                        freq: 659.25,
+                        duration: 400
+                    }, // E5
+                    {
+                        freq: 659.25,
+                        duration: 400
+                    }, // E5
+                    {
+                        freq: 659.25,
+                        duration: 800
+                    }, // E5
+                    {
+                        freq: 659.25,
+                        duration: 400
+                    }, // E5
+                    {
+                        freq: 783.99,
+                        duration: 400
+                    }, // G5
+                    {
+                        freq: 523.25,
+                        duration: 400
+                    }, // C5
+                    {
+                        freq: 587.33,
+                        duration: 400
+                    }, // D5
+                    {
+                        freq: 659.25,
+                        duration: 1200
+                    }, // E5
+                ]
+            },
+            fur_elise: {
+                name: "🎹 Für Elise",
+                notes: [{
+                        freq: 659.25,
+                        duration: 300
+                    }, // E5
+                    {
+                        freq: 622.25,
+                        duration: 300
+                    }, // D#5
+                    {
+                        freq: 659.25,
+                        duration: 300
+                    }, // E5
+                    {
+                        freq: 622.25,
+                        duration: 300
+                    }, // D#5
+                    {
+                        freq: 659.25,
+                        duration: 300
+                    }, // E5
+                    {
+                        freq: 493.88,
+                        duration: 300
+                    }, // B4
+                    {
+                        freq: 587.33,
+                        duration: 300
+                    }, // D5
+                    {
+                        freq: 523.25,
+                        duration: 300
+                    }, // C5
+                    {
+                        freq: 440.00,
+                        duration: 900
+                    }, // A4
+                    {
+                        freq: 261.63,
+                        duration: 300
+                    }, // C4
+                    {
+                        freq: 329.63,
+                        duration: 300
+                    }, // E4
+                    {
+                        freq: 440.00,
+                        duration: 300
+                    }, // A4
+                    {
+                        freq: 493.88,
+                        duration: 900
+                    }, // B4
+                ]
+            }
+        };
+
+        // Change builtin music
+        function changeBuiltinMusic() {
+            const select = document.getElementById('builtinMusicSelect');
+            currentBuiltinMusic = select.value;
+
+            // Show notification
+            showNotification(`🎵 Đã chọn: ${melodies[currentBuiltinMusic].name}`, 'success', 2000);
+
+            // If currently playing builtin music, restart with new melody
+            if (isPlaying && currentMusicMode === 'builtin') {
+                stopMusic();
+                setTimeout(() => {
+                    startMusic();
+                }, 300);
+            }
+        }
+
+        // Adjust background music volume
+        function adjustBackgroundVolume(value) {
+            const volume = value / 100;
+            if (backgroundAudio) {
+                backgroundAudio.volume = volume;
+            }
+            document.getElementById('backgroundVolumeText').textContent = value + '%';
+
+            // Save volume preference
+            if (volume > 0.8) {
+                showNotification('🔊 Âm lượng cao - Chú ý không làm phiền người khác!', 'info', 2000);
+            }
+        }
+
+        // Toggle settings panel
+        function toggleSettings() {
+            const settings = document.getElementById('musicSettings');
+            const btn = document.getElementById('settingsBtn');
+
+            if (settings.classList.contains('show')) {
+                settings.classList.remove('show');
+                btn.innerHTML = '⚙️';
+            } else {
+                settings.classList.add('show');
+                btn.innerHTML = '❌';
+            }
+        }
+
+        // Set music mode
+        function setMusicMode(mode) {
+            currentMusicMode = mode;
+            const backgroundBtn = document.getElementById('backgroundBtn');
+            const builtinBtn = document.getElementById('builtinBtn');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const customBtn = document.getElementById('customBtn');
+            const backgroundPanel = document.getElementById('backgroundMusicPanel');
+            const builtinPanel = document.getElementById('builtinMusicPanel');
+            const uploadPanel = document.getElementById('uploadMusicPanel');
+            const customPanel = document.getElementById('customMusicPanel');
+
+            // Reset all buttons
+            backgroundBtn.classList.remove('active');
+            builtinBtn.classList.remove('active');
+            uploadBtn.classList.remove('active');
+            customBtn.classList.remove('active');
+
+            // Hide all panels
+            backgroundPanel.style.display = 'none';
+            builtinPanel.style.display = 'none';
+            uploadPanel.style.display = 'none';
+            customPanel.style.display = 'none';
+
+            if (mode === 'background') {
+                backgroundBtn.classList.add('active');
+                backgroundPanel.style.display = 'block';
+
+                // Stop other music
+                if (customAudio) {
+                    customAudio.pause();
+                    customAudio = null;
+                }
+                if (uploadedAudio) {
+                    uploadedAudio.pause();
+                }
+                stopMusic();
+
+            } else if (mode === 'builtin') {
+                builtinBtn.classList.add('active');
+                builtinPanel.style.display = 'block';
+
+                // Stop other music
+                if (customAudio) {
+                    customAudio.pause();
+                    customAudio = null;
+                }
+                if (uploadedAudio) {
+                    uploadedAudio.pause();
+                }
+                if (backgroundAudio) {
+                    backgroundAudio.pause();
+                }
+
+            } else if (mode === 'upload') {
+                uploadBtn.classList.add('active');
+                uploadPanel.style.display = 'block';
+
+                // Initialize drag-drop if not done
+                if (!uploadPanel.hasAttribute('data-initialized')) {
+                    initializeDragDrop();
+                    uploadPanel.setAttribute('data-initialized', 'true');
+                }
+
+                // Stop other music
+                if (customAudio) {
+                    customAudio.pause();
+                    customAudio = null;
+                }
+                if (backgroundAudio) {
+                    backgroundAudio.pause();
+                }
+                stopMusic();
+
+            } else { // custom
+                customBtn.classList.add('active');
+                customPanel.style.display = 'block';
+
+                // Stop other music
+                if (uploadedAudio) {
+                    uploadedAudio.pause();
+                }
+                if (backgroundAudio) {
+                    backgroundAudio.pause();
+                }
+                stopMusic();
+            }
+
+            // Reset play button
+            if (isPlaying) {
+                isPlaying = false;
+                document.getElementById('musicBtn').innerHTML = '▶️';
+                document.getElementById('musicBtn').style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            }
+        }
+
+        // Load custom music
+        function loadCustomMusic() {
+            const url = document.getElementById('musicUrl').value.trim();
+
+            if (!url) {
+                alert('Vui lòng nhập link nhạc!');
+                return;
+            }
+
+            // Convert YouTube URL to embed format (for display purposes)
+            let processedUrl = url;
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                // Extract video ID
+                let videoId = '';
+                if (url.includes('youtu.be/')) {
+                    videoId = url.split('youtu.be/')[1].split('?')[0];
+                } else if (url.includes('youtube.com/watch?v=')) {
+                    videoId = url.split('v=')[1].split('&')[0];
+                }
+
+                if (videoId) {
+                    // Create YouTube embed iframe (audio only won't work directly, so we'll show a message)
+                    showYouTubeMessage(videoId);
+                    return;
+                }
+            }
+
+            // Try to load as regular audio file
+            try {
+                if (customAudio) {
+                    customAudio.pause();
+                }
+
+                customAudio = new Audio(processedUrl);
+                customAudio.loop = true;
+                customAudio.volume = 0.7; // Tăng từ 0.3 lên 0.7
+
+                customAudio.onloadeddata = () => {
+                    showNotification('✅ Nhạc đã load thành công!', 'success');
+                    // Auto play if not already playing
+                    if (!isPlaying) {
+                        toggleMusic();
+                    }
+                };
+
+                customAudio.onerror = () => {
+                    showNotification('❌ Không thể load nhạc. Kiểm tra lại link!', 'error');
+                };
+
+            } catch (e) {
+                showNotification('❌ Link không hợp lệ!', 'error');
+            }
+        }
+
+        function showYouTubeMessage(videoId) {
+            const message = `
+    🎵 <strong>YouTube Link Detected!</strong><br><br>
+    Do giới hạn bảo mật, không thể phát trực tiếp từ YouTube.<br><br>
+    <strong>Giải pháp:</strong><br>
+    1. Mở YouTube trong tab khác<br>
+    2. Phát video: <a href="https://youtu.be/${videoId}" target="_blank">Mở nhạc</a><br>
+    3. Quay lại tab này để xem thư<br><br>
+    Hoặc dùng link MP3 trực tiếp thay thế!
+`;
+
+            showNotification(message, 'info', 8000);
+        }
+
+        function showNotification(message, type = 'info', duration = 4000) {
+            const notification = document.createElement('div');
+            const colors = {
+                success: 'rgba(40, 167, 69, 0.95)',
+                error: 'rgba(220, 53, 69, 0.95)',
+                info: 'rgba(23, 162, 184, 0.95)'
+            };
+
+            notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: ${colors[type]};
+    color: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    font-family: 'Crimson Text', serif;
+    font-size: 1.1em;
+    z-index: 1000;
+    animation: slideInTop 0.5s ease-out;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+`;
+            notification.innerHTML = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOutTop 0.5s ease-in forwards';
+                setTimeout(() => notification.remove(), 500);
+            }, duration);
+        }
+
+        // Tạo trái tim bay
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.innerHTML = '💖';
+            heart.style.left = Math.random() * 100 + '%';
+            heart.style.animationDelay = Math.random() * 3 + 's';
+            heart.style.animationDuration = (Math.random() * 3 + 4) + 's';
+            document.getElementById('hearts-container').appendChild(heart);
+
+            setTimeout(() => {
+                heart.remove();
+            }, 7000);
+        }
+
+        // Tạo trái tim liên tục
+        setInterval(createHeart, 1000);
+
+        // Tạo hiệu ứng particles khi mở thư
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+
+                const angle = (i / 20) * Math.PI * 2;
+                const distance = 100 + Math.random() * 100;
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.animation = `explode 1s ease-out forwards`;
+                particle.style.animationDelay = i * 0.05 + 's';
+
+                particlesContainer.appendChild(particle);
+
+                setTimeout(() => particle.remove(), 1500);
+            }
+        }
+
+        // Mở phong bì
+        function openEnvelope() {
+            if (isEnvelopeOpen) return;
+
+            isEnvelopeOpen = true;
+            const envelope = document.getElementById('envelope');
+            const envelopeContainer = document.getElementById('envelopeContainer');
+            const letterContainer = document.getElementById('letterContainer');
+            const musicControls = document.getElementById('musicControls');
+            const backButton = document.getElementById('backButton');
+
+            // Tạo hiệu ứng particles
+            createParticles();
+
+            // Mở phong bì
+            envelope.classList.add('opened');
+
+            setTimeout(() => {
+                // Ẩn phong bì và hiện thư
+                envelopeContainer.style.opacity = '0';
+                envelopeContainer.style.transform = 'scale(0.8)';
+
+                setTimeout(() => {
+                    envelopeContainer.style.display = 'none';
+                    letterContainer.classList.add('show');
+                    musicControls.classList.add('show');
+                    backButton.classList.add('show');
+
+                    // Auto play background music if available
+                    setTimeout(() => {
+                        initializeBackgroundMusic();
+
+                        // Try to auto-play background music
+                        if (backgroundAudio && backgroundAudio.children.length > 0) {
+                            if (!isPlaying && currentMusicMode === 'background') {
+                                toggleMusic();
+                            }
+                        } else {
+                            // Fallback to builtin music if no background music
+                            if (!isPlaying) {
+                                toggleMusic();
+                            }
+                        }
+                    }, 1000);
+                }, 1000);
+            }, 1000);
+        }
+
+        // Đóng thư
+        function closeEnvelope() {
+            const envelope = document.getElementById('envelope');
+            const envelopeContainer = document.getElementById('envelopeContainer');
+            const letterContainer = document.getElementById('letterContainer');
+            const musicControls = document.getElementById('musicControls');
+            const backButton = document.getElementById('backButton');
+
+            // Ẩn thư
+            letterContainer.classList.remove('show');
+            musicControls.classList.remove('show');
+            backButton.classList.remove('show');
+
+            // Dừng nhạc
+            if (isPlaying) {
+                toggleMusic();
+            }
+
+            setTimeout(() => {
+                // Hiện lại phong bì
+                envelopeContainer.style.display = 'flex';
+                envelopeContainer.style.opacity = '1';
+                envelopeContainer.style.transform = 'scale(1)';
+
+                // Reset phong bì
+                envelope.classList.remove('opened');
+                isEnvelopeOpen = false;
+            }, 500);
+        }
+
+        // Âm thanh nền
+        let isPlaying = false;
+        let audioContext;
+        let currentNote = 0;
+        let melodyInterval;
+
+        function toggleMusic() {
+            const btn = document.getElementById('musicBtn');
+
+            if (!isPlaying) {
+                if (currentMusicMode === 'background' && backgroundAudio) {
+                    // Play background music
+                    backgroundAudio.play().then(() => {
+                        isPlaying = true;
+                        btn.innerHTML = '⏸️';
+                        btn.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+                    }).catch(() => {
+                        showNotification('❌ Không có file nhạc nền! Hãy thêm file nhạc vào code HTML.', 'error');
+                    });
+
+                } else if (currentMusicMode === 'custom' && customAudio) {
+                    // Play custom music (from URL)
+                    customAudio.play().then(() => {
+                        isPlaying = true;
+                        btn.innerHTML = '⏸️';
+                        btn.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+                    }).catch(() => {
+                        showNotification('❌ Không thể phát nhạc. Thử lại!', 'error');
+                    });
+
+                } else if (currentMusicMode === 'upload' && uploadedAudio) {
+                    // Play uploaded music
+                    uploadedAudio.play().then(() => {
+                        isPlaying = true;
+                        btn.innerHTML = '⏸️';
+                        btn.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+                    }).catch(() => {
+                        showNotification('❌ Không thể phát nhạc. Thử lại!', 'error');
+                    });
+
+                } else if (currentMusicMode === 'builtin') {
+                    // Play builtin music
+                    startMusic();
+                    btn.innerHTML = '⏸️';
+                    btn.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+                    isPlaying = true;
+
+                } else {
+                    // No music available
+                    if (currentMusicMode === 'background') {
+                        showNotification('🎵 Chưa có file nhạc nền! Xem hướng dẫn bên dưới.', 'info');
+                    } else if (currentMusicMode === 'upload') {
+                        showNotification('📁 Hãy tải lên file nhạc trước!', 'info');
+                    } else if (currentMusicMode === 'custom') {
+                        showNotification('🔗 Hãy nhập link nhạc trước!', 'info');
+                    }
+                }
+
+            } else {
+                // Stop music
+                if (currentMusicMode === 'background' && backgroundAudio) {
+                    backgroundAudio.pause();
+                } else if (currentMusicMode === 'custom' && customAudio) {
+                    customAudio.pause();
+                } else if (currentMusicMode === 'upload' && uploadedAudio) {
+                    uploadedAudio.pause();
+                } else {
+                    stopMusic();
+                }
+
+                btn.innerHTML = '▶️';
+                btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                isPlaying = false;
+            }
+        }
+
+        function startMusic() {
+            try {
+                audioContext = new(window.AudioContext || window.webkitAudioContext)();
+                playRomanticMelody();
+            } catch (e) {
+                console.log('Trình duyệt không hỗ trợ âm thanh');
+                showMusicNotification();
+            }
+        }
+
+        function stopMusic() {
+            if (melodyInterval) {
+                clearInterval(melodyInterval);
+                melodyInterval = null;
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+        }
+
+        function playRomanticMelody() {
+            // Get current selected melody
+            const melody = melodies[currentBuiltinMusic];
+
+            let noteIndex = 0;
+
+            function playNextNote() {
+                if (!isPlaying) return;
+
+                if (noteIndex >= melody.notes.length) {
+                    noteIndex = 0; // Lặp lại
+                }
+
+                const note = melody.notes[noteIndex];
+                playTone(note.freq, note.duration);
+                noteIndex++;
+
+                setTimeout(playNextNote, note.duration + 100);
+            }
+
+            playNextNote();
+        }
+
+        function playTone(frequency, duration) {
+            if (!audioContext) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Tạo âm thanh mượt mà hơn
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+
+            // Fade in/out để không bị lặc cặc - TĂNG ÂM LƯỢNG
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01); // Tăng từ 0.1 lên 0.3
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + (duration / 1000) - 0.01);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration / 1000);
+        }
+
+        function showMusicNotification() {
+            showNotification('🎵 Hãy bật âm thanh để nghe nhạc nền lãng mạn!', 'info');
+        }
+
+        // Hiệu ứng particles khi click
+        document.addEventListener('click', function(e) {
+            if (!isEnvelopeOpen) return; // Chỉ tạo hiệu ứng khi đã mở thư
+            createClickEffect(e.clientX, e.clientY);
+        });
+
+        function createClickEffect(x, y) {
+            for (let i = 0; i < 6; i++) {
+                const particle = document.createElement('div');
+                particle.innerHTML = '✨';
+                particle.style.position = 'fixed';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.pointerEvents = 'none';
+                particle.style.zIndex = '1000';
+                particle.style.fontSize = '20px';
+                particle.style.animation = `sparkle 1s ease-out forwards`;
+                particle.style.animationDelay = i * 0.1 + 's';
+
+                document.body.appendChild(particle);
+
+                setTimeout(() => particle.remove(), 1200);
+            }
+        }
+
+        // CSS cho hiệu ứng slideInRight
+        const style = document.createElement('style');
+        style.textContent = `
+@keyframes sparkle {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px) scale(0.5);
+    }
+}
+
+@keyframes slideInTop {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -100px);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@keyframes slideOutTop {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -100px);
+    }
+}
+`;
+        document.head.appendChild(style);
+    </script>
+</body>
+
+</html>
